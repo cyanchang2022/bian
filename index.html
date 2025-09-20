@@ -771,11 +771,11 @@ async function fetchKlines(sym, inter, limit=120){
 async function loadInitial(){
   try{
     document.body.classList.add('loading');
-    kdata = await fetchKlines(symbol, interval, 120);
+    kdata = await fetchKlines(symbol, interval, 50);
     await computeAndRender();
     document.body.classList.remove('loading');
     if(window._refreshTimer) clearInterval(window._refreshTimer);
-    window._refreshTimer = setInterval(refreshLatest, 60*1000);
+    window._refreshTimer = setInterval(refreshLatest, 1*1000);
   }catch(e){
     document.body.classList.remove('loading');
     console.error(e);
@@ -820,7 +820,7 @@ function evaluatePredictions(){
   for(const p of predictions){
     if(p.actual !== null) continue;
     const target = new Date(p.time.getTime() + p.horizon*60000);
-    const found = kdata.find(k=>k.time.getTime() >= target.getTime());
+    const found = kdata.find(k=>k.time.getTime() === target.getTime());
     if(found){
       const origin = kdata.find(k=>k.time.getTime() === p.time.getTime());
       if(!origin){ p.actual='未知'; p.ok=false; continue; }
@@ -866,7 +866,7 @@ function updateRecordsUI(){
     const row = document.createElement('tr');
     
     const timeCell = document.createElement('td');
-    timeCell.textContent = new Date(p.time).toLocaleString();
+    timeCell.textContent = new Date(p.time).toISOString().replace('T',' ').split('.')[0] + ' UTC';
     
     const dirCell = document.createElement('td');
     dirCell.textContent = p.predDir;
@@ -902,35 +902,43 @@ function updateRecordsUI(){
 }
 
 /* ----------------- 图表渲染 ----------------- */
-function getPredictionMarks() {
-  // 只显示当前 horizon 的预测
-  return predictions
-    .filter(p => p.horizon === horizon)
-    .map(p => {
-      const timeStr = new Date(p.time).toLocaleTimeString();
-      let symbol = 'circle';
-      let color = '#9fb0c3'; // 中性
-      let rotation = 0;
-      if (p.predDir === '上涨') {
-        symbol = 'triangle';
-        color = '#4cd964';
-        rotation = -90; // 朝上
-      } else if (p.predDir === '下跌') {
-        symbol = 'triangle';
-        color = '#ff3b30';
-        rotation = 90; // 朝下
-      }
+function getPredictionMarks(){
+  return predictions.map(p=>{
+    // 设置偏移量，这里取收盘价的 1% 作为上下偏移
+    const offset = p.price * 0.01;
+
+    // 根据预测方向调整位置和样式
+    if(p.dir === '上涨'){
       return {
-        name: p.predDir,
-        coord: [timeStr, p.predPrice],
-        value: p.predPrice,
-        symbol,
-        symbolRotate: rotation,
-        symbolSize: 18,
-        itemStyle: { color, opacity: 0.95 },
-        label: { show: true, formatter: p.predDir, color: '#fff', fontSize: 10 }
+        xAxis: p.time,
+        yAxis: p.price - offset,   // 下方
+        name: p.dir + " " + p.prob + "%",
+        itemStyle: { color: '#00ff00' },
+        symbol: 'triangle',
+        symbolRotate: 0,           // 向上
+        symbolSize: 16
       };
-    });
+    } else if(p.dir === '下跌'){
+      return {
+        xAxis: p.time,
+        yAxis: p.price + offset,   // 上方
+        name: p.dir + " " + p.prob + "%",
+        itemStyle: { color: '#ff0000' },
+        symbol: 'triangle',
+        symbolRotate: 180,         // 向下
+        symbolSize: 16
+      };
+    } else {
+      return {
+        xAxis: p.time,
+        yAxis: p.price,
+        name: p.dir,
+        itemStyle: { color: '#9fb0c3' },
+        symbol: 'circle',
+        symbolSize: 12
+      };
+    }
+  });
 }
 
 function renderChart() {
@@ -963,8 +971,13 @@ function renderChart() {
       { type: 'category', gridIndex: 1, data: times, boundaryGap: true, axisLine: { lineStyle: { color: '#9fb0c3' } } },
       { type: 'category', gridIndex: 2, data: times, boundaryGap: true, axisLine: { show: false } }
     ],
-    yAxis: [
-      { scale: true, axisLine: { lineStyle: { color: '#9fb0c3' } } },
+yAxis: [
+  { 
+    scale: true,
+    axisLine: { lineStyle: { color: '#9fb0c3' } },
+    min: value => value * 0.95,   // 下边界留 5%
+    max: value => value * 1.05    // 上边界留 5%
+  },
       { gridIndex: 1, axisLine: { lineStyle: { color: '#9fb0c3' } }, splitNumber: 2 },
       { gridIndex: 2, axisLine: { lineStyle: { color: '#9fb0c3' } }, splitNumber: 2 }
     ],
@@ -977,11 +990,14 @@ function renderChart() {
         type: 'candlestick', 
         name: 'K线', 
         data: ohlc,
+        barWidth: 8, 
+        barMinWidth: 6,
+        barMaxWidth: 14,
         itemStyle: {
-          color: '#4cd964',
-          color0: '#ff3b30',
-          borderColor: '#4cd964',
-          borderColor0: '#ff3b30'
+          color: '#8ae9bd',
+          color0: '#ff9672',
+          borderColor: '#2ad587',
+          borderColor0: '#ff4000'
         },
         markPoint: {
           data: getPredictionMarks(),
@@ -1066,7 +1082,7 @@ async function computeAndRender(){
   }
 
   updateSliderValues();
-  lastUpdateEl.textContent = '最后更新: ' + new Date().toLocaleTimeString();
+  lastUpdateEl.textContent = '最后更新: ' + new Date().toISOString().replace('T',' ').split('.')[0] + ' UTC';
   updateRecordsUI();
   renderChart();
 }
@@ -1105,7 +1121,7 @@ exportBtn.addEventListener('click', () => {
 
 /* ----------------- 启动 ----------------- */
 loadInitial();
-setInterval(()=>{ evaluatePredictions(); updateRecordsUI(); }, 30*1000);
+setInterval(()=>{ evaluatePredictions(); updateRecordsUI(); }, 60*1000);
 
 </script>
 </body>
