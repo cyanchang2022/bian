@@ -749,7 +749,7 @@ priceSlider.addEventListener('input', () => {
 /* fetch klines from Binance */
 async function fetchKlines(sym, inter, limit=120){
   try {
-    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${inter}&limit=${limit}`;
+    const url = `https://api.binance.me/api/v3/klines?symbol=${sym}&interval=${inter}&limit=${limit}`;
     const r = await fetch(url);
     if(!r.ok) throw new Error('Klines fetch failed: '+r.status);
     const raw = await r.json();
