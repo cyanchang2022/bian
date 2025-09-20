@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>实时价格分析系统</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #071018;
+    --panel: #0d1a24;
+    --muted: #9fb0c3;
+    --accent: #1fb6ff;
+    --success: #4cd964;
+    --danger: #ff3b30;
+    --warning: #ffd166;
+    --text-primary: #e6eef3;
+    --border-color: #1e2a35;
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    margin: 0;
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--panel);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .header h1 {
+    font-size: 1.6rem;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .price-info {
+    display: flex;
+    gap: 25px;
+    font-size: 1.1rem;
+  }
+  
+  .price-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .price-label {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  
+  .price-value {
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+  
+  .price-up {
+    color: var(--success);
+  }
+  
+  .price-down {
+    color: var(--danger);
+  }
+  
+  .main-content {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 20px;
+  }
+  
+  @media (max-width: 1000px) {
+    .main-content {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .control-panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .data-panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .panel-section {
+    margin-bottom: 25px;
+  }
+  
+  .panel-title {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .form-group {
+    margin-bottom: 18px;
+  }
+  
+  label {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  
+  select, input[type="range"] {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 1rem;
+  }
+  
+  select:focus, input[type="range"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  button {
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: none;
+    background: #12242f;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  button:hover {
+    background: #1a3243;
+  }
+  
+  button.active {
+    background: var(--accent);
+    color: #071018;
+    font-weight: 600;
+  }
+  
+  .signal-display {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 18px;
+    margin-top: 15px;
+  }
+  
+  .signal-value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 10px 0;
+  }
+  
+  .signal-up {
+    color: var(--success);
+  }
+  
+  .signal-down {
+    color: var(--danger);
+  }
+  
+  .signal-neutral {
+    color: var(--muted);
+  }
+  
+  .probability {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 10px 0;
+  }
+  
+  .slider-container {
+    margin: 25px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+  }
+  
+  .slider-title {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    color: var(--muted);
+  }
+  
+  .price-slider {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #ff3b30, #ffd166, #4cd964);
+    outline: none;
+    border-radius: 4px;
+  }
+  
+  .price-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 3px solid white;
+  }
+  
+  .price-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 3px solid white;
+  }
+  
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  
+  .records-container {
+    margin-top: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .records-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .records-table-container {
+    overflow: auto;
+    flex: 1;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+  }
+  
+  .records-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  
+  .records-table th {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    position: sticky;
+    top: 0;
+  }
+  
+  .records-table td {
+    padding: 12px 15px;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  .records-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+  
+  .accuracy-display {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border-color);
+    font-size: 1.1rem;
+  }
+  
+  .last-update {
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-top: 10px;
+    text-align: right;
+  }
+  
+  .custom-input-container {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+    gap: 10px;
+  }
+  
+  #customInput {
+    width: 90px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+  }
+  
+  #confirmCustom {
+    padding: 10px 15px;
+  }
+  
+  .footer {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  .loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  
+  .icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .price-change {
+    font-size: 0.95rem;
+    margin-top: 5px;
+  }
+
+  /* 图表容器样式 */
+  #chartContainer {
+    width: 100%;
+    height: 480px;
+    background: transparent;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+
+  #exportBtn {
+    background: #1a3243;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><i class="fas fa-chart-line"></i> 实时价格分析系统</h1>
+    <div class="price-info">
+      <div class="price-item">
+        <div class="price-label">当前价格</div>
+        <div id="currentPrice" class="price-value">--</div>
+      </div>
+      <div class="price-item">
+        <div class="price-label">24h变化</div>
+        <div id="priceChange" class="price-value">--</div>
+      </div>
+      <div class="price-item">
+        <div class="price-label">预测方向</div>
+        <div id="predictionDirection" class="price-value">--</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="main-content">
+    <div class="control-panel">
+      <div class="panel-section">
+        <div class="panel-title"><i class="fas fa-sliders-h"></i> 控制面板</div>
+        
+        <div class="form-group">
+          <label for="selSymbol"><i class="fas fa-coins"></i> 交易对</label>
+          <select id="selSymbol">
+            <option value="ETHUSDT">ETH/USDT</option>
+            <option value="BTCUSDT">BTC/USDT</option>
+            <option value="ADAUSDT">ADA/USDT</option>
+            <option value="DOTUSDT">DOT/USDT</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="selInterval"><i class="fas fa-clock"></i> 周期</label>
+          <select id="selInterval">
+            <option value="1m" selected>1 分钟</option>
+            <option value="5m">5 分钟</option>
+            <option value="15m">15 分钟</option>
+            <option value="1h">1 小时</option>
+            <option value="4h">4 小时</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label><i class="fas fa-hourglass-half"></i> 预测时长（分）</label>
+          <div class="btn-group">
+            <button class="hbtn active" data-h="10">10</button>
+            <button class="hbtn" data-h="30">30</button>
+            <button class="hbtn" data-h="60">60</button>
+            <button id="customBtn" class="hbtn">自定义</button>
+          </div>
+          <div id="customInputContainer" class="custom-input-container" style="display: none;">
+            <input id="customInput" type="number" min="1" max="1440" placeholder="分钟数">
+            <button id="confirmCustom">确认</button>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="threshold"><i class="fas fa-bell"></i> 信号阈值：<span id="thVal">55</span></label>
+          <input id="threshold" type="range" min="0" max="100" value="55">
+        </div>
+      </div>
+      
+      <div class="panel-section">
+        <div class="panel-title"><i class="fas fa-chart-area"></i> 最新预测</div>
+        <div class="signal-display">
+          <div>方向信号:</div>
+          <div id="signalBox" class="signal-value">等待数据…</div>
+          <div>概率值:</div>
+          <div id="prob" class="probability">--%</div>
+          <div class="price-change">当前价格: <span id="currentPriceSmall">--</span></div>
+        </div>
+      </div>
+      
+      <div class="slider-container">
+        <div class="slider-title">
+          <span>价格范围</span>
+          <span id="sliderValue">--</span>
+        </div>
+        <input type="range" min="0" max="100" value="50" class="price-slider" id="priceSlider">
+        <div class="slider-labels">
+          <span id="minPrice">--</span>
+          <span id="maxPrice">--</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="data-panel">
+      <!-- 新增：行情图表 -->
+      <div class="panel-section">
+        <div class="panel-title"><i class="fas fa-chart-line"></i> 行情图表</div>
+        <div id="chartContainer"></div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title"><i class="fas fa-history"></i> 预测记录</div>
+        
+        <div class="records-container">
+          <div class="records-header">
+            <div>最近预测记录</div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <span>准确率：<span id="accuracy">--</span>%</span>
+              <button id="exportBtn"><i class="fas fa-download"></i> 导出CSV</button>
+            </div>
+          </div>
+          
+          <div class="records-table-container">
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>方向</th>
+                  <th>概率</th>
+                  <th>预测价格</th>
+                  <th>实际价格</th>
+                  <th>结果</th>
+                </tr>
+              </thead>
+              <tbody id="records">
+                <tr>
+                  <td colspan="6" style="text-align: center;">等待数据加载...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="last-update" id="lastUpdate">最后更新: --</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>提示：系统使用技术指标（RSI/MACD/KDJ）进行价格预测。数据来源: Binance API</p>
+  </div>
+</div>
+
+<script>
+// 模拟数据生成函数
+function generateMockData(symbol, limit) {
+  const basePrice = symbol === 'BTCUSDT' ? 50000 : 
+                   symbol === 'ETHUSDT' ? 3000 :
+                   symbol === 'ADAUSDT' ? 1.2 : 30;
+  
+  const volatility = 0.02;
+  const results = [];
+  let time = Date.now() - limit * 60000;
+  
+  for (let i = 0; i < limit; i++) {
+    const open = basePrice * (1 + (Math.random() - 0.5) * volatility);
+    const close = open * (1 + (Math.random() - 0.5) * volatility * 0.5);
+    const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.3);
+    const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.3);
+    const vol = 100 + Math.random() * 1000;
+    
+    results.push({
+      time: new Date(time),
+      open: open,
+      high: high,
+      low: low,
+      close: close,
+      vol: vol
+    });
+    
+    time += 60000;
+  }
+  
+  return results;
+}
+
+/* ----------------- 工具与指标 ----------------- */
+function ema(values, period){
+  const k = 2/(period+1);
+  const out = [];
+  let prev = values[0];
+  out.push(prev);
+  for(let i=1;i<values.length;i++){
+    prev = values[i]*k + prev*(1-k);
+    out.push(prev);
+  }
+  return out;
+}
+
+function calcRSI(closes, period=14){
+  const res = Array(closes.length).fill(null);
+  if(closes.length<=period) return res;
+  let gains=0,losses=0;
+  for(let i=1;i<=period;i++){
+    let d = closes[i]-closes[i-1];
+    if(d>0) gains+=d; else losses+=Math.abs(d);
+  }
+  let avgG=gains/period, avgL=losses/period;
+  res[period] = 100 - (100/(1 + avgG/(avgL||1e-8)));
+  for(let i=period+1;i<closes.length;i++){
+    let d = closes[i] - closes[i-1];
+    avgG = (avgG*(period-1) + (d>0?d:0))/period;
+    avgL = (avgL*(period-1) + (d<0?Math.abs(d):0))/period;
+    res[i] = 100 - (100/(1 + avgG/(avgL||1e-8)));
+  }
+  return res;
+}
+
+function calcMACD(closes, fast=12, slow=26, sig=9){
+  if(closes.length===0) return {dif:[],dea:[],hist:[]};
+  const emaFast = ema(closes, fast);
+  const emaSlow = ema(closes, slow);
+  const dif = closes.map((_,i)=>emaFast[i]-emaSlow[i]);
+  const dea = ema(dif, sig);
+  const hist = dif.map((v,i)=>v-dea[i]);
+  return {dif, dea, hist};
+}
+
+function calcKDJ(closes, highs, lows, n=9, kS=3, dS=3){
+  const len = closes.length;
+  const K = Array(len).fill(null), D = Array(len).fill(null), J = Array(len).fill(null);
+  let kPrev=50,dPrev=50;
+  for(let i=0;i<len;i++){
+    if(i < n-1) continue;
+    const high = Math.max(...highs.slice(i-n+1,i+1));
+    const low = Math.min(...lows.slice(i-n+1,i+1));
+    const rsv = high===low ? 50 : ((closes[i]-low)/(high-low))*100;
+    kPrev = ( (kPrev*(kS-1)) + rsv )/kS;
+    dPrev = ( (dPrev*(dS-1)) + kPrev )/dS;
+    K[i]=kPrev; D[i]=dPrev; J[i]=3*kPrev - 2*dPrev;
+  }
+  return {K,D,J};
+}
+
+/* 组合预测（简单加权） */
+function makePrediction(latestIdx, {closes, rsi, macd, kdj}){
+  const weights = {trend:30, macd:30, rsi:20, kdj:20};
+  let score=0; const last=closes[latestIdx];
+  // trend (slope last 6)
+  const n = Math.min(6, closes.length);
+  if(n>1){
+    const slice = closes.slice(-n);
+    const slope = (slice[slice.length-1]-slice[0])/n;
+    score += Math.tanh(slope/(last*0.001)) * weights.trend;
+  }
+  // macd hist
+  const hist = macd.hist[latestIdx] || 0;
+  score += Math.tanh(hist/Math.max(0.0001, Math.abs(hist)+1)) * weights.macd;
+  // rsi
+  const r = rsi[latestIdx];
+  if(typeof r==='number') score += ((r-50)/50)*weights.rsi;
+  // kdj J
+  const j = kdj.J[latestIdx];
+  if(typeof j==='number') score += ((j-50)/50)*weights.kdj;
+
+  const sumW = Object.values(weights).reduce((a,b)=>a+b,0);
+  const prob = Math.max(0, Math.min(100, ((score + sumW)/(2*sumW))*100));
+  const dir = prob > 50 ? '上涨' : (prob < 50 ? '下跌' : '持平');
+  return {dir, prob: +prob.toFixed(1), score};
+}
+
+/* ----------------- 数据流 ----------------- */
+// DOM元素引用
+const selSymbol = document.getElementById('selSymbol');
+const selInterval = document.getElementById('selInterval');
+const threshold = document.getElementById('threshold');
+const thVal = document.getElementById('thVal');
+const signalBox = document.getElementById('signalBox');
+const probEl = document.getElementById('prob');
+const recEl = document.getElementById('records');
+const accEl = document.getElementById('accuracy');
+const lastUpdateEl = document.getElementById('lastUpdate');
+const customBtn = document.getElementById('customBtn');
+const customInputContainer = document.getElementById('customInputContainer');
+const customInput = document.getElementById('customInput');
+const confirmCustom = document.getElementById('confirmCustom');
+const currentPriceEl = document.getElementById('currentPrice');
+const priceChangeEl = document.getElementById('priceChange');
+const predictionDirectionEl = document.getElementById('predictionDirection');
+const currentPriceSmallEl = document.getElementById('currentPriceSmall');
+const priceSlider = document.getElementById('priceSlider');
+const sliderValue = document.getElementById('sliderValue');
+const minPriceEl = document.getElementById('minPrice');
+const maxPriceEl = document.getElementById('maxPrice');
+const exportBtn = document.getElementById('exportBtn');
+
+let symbol = selSymbol.value;
+let interval = selInterval.value;
+let horizon = 10;
+let thresh = +threshold.value;
+let kdata = [];
+let predictions = [];
+let priceRange = { min: 0, max: 100 };
+
+// ECharts 实例
+let chart = echarts.init(document.getElementById('chartContainer'));
+
+// 事件监听器
+selSymbol.addEventListener('change', ()=>{ symbol = selSymbol.value; loadInitial(); });
+selInterval.addEventListener('change', ()=>{ interval = selInterval.value; loadInitial(); });
+threshold.addEventListener('input', ()=>{ thresh = +threshold.value; thVal.innerText = thresh; });
+
+// 自定义预测时长处理
+customBtn.addEventListener('click', () => {
+  document.querySelectorAll('.hbtn').forEach(x => {
+    if (x.id !== 'customBtn') x.classList.remove('active');
+  });
+  customBtn.classList.add('active');
+  customInputContainer.style.display = 'flex';
+  customInput.value = horizon;
+  customInput.focus();
+});
+
+confirmCustom.addEventListener('click', () => {
+  const value = parseInt(customInput.value);
+  if (value && value > 0 && value <= 1440) {
+    horizon = value;
+    customInputContainer.style.display = 'none';
+    predictions = [];
+    updateRecordsUI();
+  } else {
+    alert('请输入有效的分钟数（1-1440）');
+  }
+});
+
+customInput.addEventListener('keyup', (e) => {
+  if (e.key === 'Enter') {
+    confirmCustom.click();
+  }
+});
+
+// 预设时长按钮处理
+document.querySelectorAll('.hbtn:not(#customBtn)').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.hbtn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    customInputContainer.style.display = 'none';
+    horizon = +b.dataset.h;
+    predictions = [];
+    updateRecordsUI();
+  });
+});
+
+// 价格滑动条事件
+priceSlider.addEventListener('input', () => {
+  updateSliderValues();
+});
+
+/* fetch klines from Binance */
+async function fetchKlines(sym, inter, limit=120){
+  try {
+    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${inter}&limit=${limit}`;
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('Klines fetch failed: '+r.status);
+    const raw = await r.json();
+    return raw.map(d=>({
+      time: new Date(d[0]),
+      open: +d[1],
+      high: +d[2],
+      low: +d[3],
+      close: +d[4],
+      vol: +d[5]
+    }));
+  } catch (e) {
+    console.error('API请求失败，使用模拟数据:', e);
+    return generateMockData(sym, limit);
+  }
+}
+
+/* ----------------- 数据计算与渲染 ----------------- */
+async function loadInitial(){
+  try{
+    document.body.classList.add('loading');
+    kdata = await fetchKlines(symbol, interval, 120);
+    await computeAndRender();
+    document.body.classList.remove('loading');
+    if(window._refreshTimer) clearInterval(window._refreshTimer);
+    window._refreshTimer = setInterval(refreshLatest, 60*1000);
+  }catch(e){
+    document.body.classList.remove('loading');
+    console.error(e);
+    signalBox.innerText = '加载失败：' + e.message;
+  }
+}
+
+async function refreshLatest(){
+  try{
+    const latest = await fetchKlines(symbol, interval, 1);
+    if(latest && latest.length){
+      const last = latest[0];
+      if(kdata.length===0 || last.time.getTime() > kdata[kdata.length-1].time.getTime()){
+        kdata.push(last);
+        if(kdata.length>240) kdata.shift();
+      }else{
+        kdata[kdata.length-1] = last;
+      }
+      await computeAndRender();
+    }
+  }catch(e){
+    console.warn('refresh err', e);
+  }
+}
+
+function recordPrediction(time, dir, prob, price){
+  predictions.push({
+    time, 
+    horizon, 
+    predDir: dir, 
+    prob, 
+    predPrice: price,
+    actualPrice: null, 
+    actual: null, 
+    ok: null
+  });
+  if(predictions.length>200) predictions.shift();
+}
+
+function evaluatePredictions(){
+  const now = new Date();
+  for(const p of predictions){
+    if(p.actual !== null) continue;
+    const target = new Date(p.time.getTime() + p.horizon*60000);
+    const found = kdata.find(k=>k.time.getTime() >= target.getTime());
+    if(found){
+      const origin = kdata.find(k=>k.time.getTime() === p.time.getTime());
+      if(!origin){ p.actual='未知'; p.ok=false; continue; }
+      p.actualPrice = found.close;
+      p.actual = found.close > origin.close ? '上涨' : (found.close < origin.close ? '下跌' : '持平');
+      p.ok = (p.predDir === p.actual);
+    }
+  }
+  const evals = predictions.filter(x=>x.ok!==null && x.horizon===horizon);
+  if(evals.length>0){
+    const ok = evals.filter(x=>x.ok).length;
+    accEl.innerText = (ok/evals.length*100).toFixed(2);
+  }else accEl.innerText = '--';
+}
+
+function updateSliderValues() {
+  if (kdata.length === 0) return;
+  
+  const currentPrice = kdata[kdata.length - 1].close;
+  const percent = priceSlider.value;
+  const range = priceRange.max - priceRange.min;
+  const value = priceRange.min + (range * percent / 100);
+  
+  sliderValue.textContent = value.toFixed(2);
+}
+
+function updateRecordsUI(){
+  evaluatePredictions();
+  const list = predictions.filter(p=>p.horizon===horizon).slice(-50).reverse();
+  
+  // 清空表格
+  recEl.innerHTML = '';
+  
+  if (list.length === 0) {
+    const row = document.createElement('tr');
+    row.innerHTML = '<td colspan="6" style="text-align: center;">暂无预测记录</td>';
+    recEl.appendChild(row);
+    return;
+  }
+  
+  // 添加行
+  list.forEach(p => {
+    const row = document.createElement('tr');
+    
+    const timeCell = document.createElement('td');
+    timeCell.textContent = new Date(p.time).toLocaleString();
+    
+    const dirCell = document.createElement('td');
+    dirCell.textContent = p.predDir;
+    dirCell.className = p.predDir === '上涨' ? 'signal-up' : (p.predDir === '下跌' ? 'signal-down' : 'signal-neutral');
+    
+    const probCell = document.createElement('td');
+    probCell.textContent = p.prob + '%';
+    
+    const predPriceCell = document.createElement('td');
+    predPriceCell.textContent = p.predPrice ? p.predPrice.toFixed(2) : '--';
+    
+    const actualPriceCell = document.createElement('td');
+    actualPriceCell.textContent = p.actualPrice ? p.actualPrice.toFixed(2) : '--';
+    
+    const statusCell = document.createElement('td');
+    if (p.ok === null) {
+      statusCell.innerHTML = '<i class="fas fa-clock" style="color: #9fb0c3;"></i> 等待';
+    } else if (p.ok) {
+      statusCell.innerHTML = '<i class="fas fa-check-circle" style="color: #4cd964;"></i> 正确';
+    } else {
+      statusCell.innerHTML = '<i class="fas fa-times-circle" style="color: #ff3b30;"></i> 错误';
+    }
+    
+    row.appendChild(timeCell);
+    row.appendChild(dirCell);
+    row.appendChild(probCell);
+    row.appendChild(predPriceCell);
+    row.appendChild(actualPriceCell);
+    row.appendChild(statusCell);
+    
+    recEl.appendChild(row);
+  });
+}
+
+/* ----------------- 图表渲染 ----------------- */
+function getPredictionMarks() {
+  // 只显示当前 horizon 的预测
+  return predictions
+    .filter(p => p.horizon === horizon)
+    .map(p => {
+      const timeStr = new Date(p.time).toLocaleTimeString();
+      let symbol = 'circle';
+      let color = '#9fb0c3'; // 中性
+      let rotation = 0;
+      if (p.predDir === '上涨') {
+        symbol = 'triangle';
+        color = '#4cd964';
+        rotation = -90; // 朝上
+      } else if (p.predDir === '下跌') {
+        symbol = 'triangle';
+        color = '#ff3b30';
+        rotation = 90; // 朝下
+      }
+      return {
+        name: p.predDir,
+        coord: [timeStr, p.predPrice],
+        value: p.predPrice,
+        symbol,
+        symbolRotate: rotation,
+        symbolSize: 18,
+        itemStyle: { color, opacity: 0.95 },
+        label: { show: true, formatter: p.predDir, color: '#fff', fontSize: 10 }
+      };
+    });
+}
+
+function renderChart() {
+  if (kdata.length === 0) return;
+
+  const times = kdata.map(d => d.time.toLocaleTimeString());
+  // ECharts candlestick 数据格式: [open, close, low, high]
+  const ohlc = kdata.map(d => [d.open, d.close, d.low, d.high]);
+  const volumes = kdata.map(d => d.vol);
+
+  const closes = kdata.map(d => d.close);
+  const highs = kdata.map(d => d.high);
+  const lows = kdata.map(d => d.low);
+  const rsi = calcRSI(closes,14);
+  const macd = calcMACD(closes,12,26,9);
+  const kdj = calcKDJ(closes,highs,lows,9,3,3);
+
+  const option = {
+    backgroundColor: 'transparent',
+    animation: false,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    axisPointer: { link: { xAxisIndex: 'all' } },
+    grid: [
+      { left: 50, right: 50, top: 20, height: '50%' },   // K线
+      { left: 50, right: 50, top: '72%', height: '10%' },// 成交量 / MACD
+      { left: 50, right: 50, top: '84%', height: '12%' } // RSI/KDJ 可合并展示
+    ],
+    xAxis: [
+      { type: 'category', data: times, boundaryGap: true, axisLine: { lineStyle: { color: '#9fb0c3' } } },
+      { type: 'category', gridIndex: 1, data: times, boundaryGap: true, axisLine: { lineStyle: { color: '#9fb0c3' } } },
+      { type: 'category', gridIndex: 2, data: times, boundaryGap: true, axisLine: { show: false } }
+    ],
+    yAxis: [
+      { scale: true, axisLine: { lineStyle: { color: '#9fb0c3' } } },
+      { gridIndex: 1, axisLine: { lineStyle: { color: '#9fb0c3' } }, splitNumber: 2 },
+      { gridIndex: 2, axisLine: { lineStyle: { color: '#9fb0c3' } }, splitNumber: 2 }
+    ],
+    dataZoom: [
+      { type: 'inside', xAxisIndex: [0,1,2], start: 60, end: 100 },
+      { show: true, xAxisIndex: [0,1,2], type: 'slider', top: '94%', start: 60, end: 100 }
+    ],
+    series: [
+      { 
+        type: 'candlestick', 
+        name: 'K线', 
+        data: ohlc,
+        itemStyle: {
+          color: '#4cd964',
+          color0: '#ff3b30',
+          borderColor: '#4cd964',
+          borderColor0: '#ff3b30'
+        },
+        markPoint: {
+          data: getPredictionMarks(),
+          label: { show: true, formatter: '{b}', color: '#fff' }
+        }
+      },
+      { name: '成交量', type: 'bar', data: volumes, xAxisIndex: 1, yAxisIndex: 1, itemStyle: { color: '#1fb6ff' } },
+      // MACD hist (绘在第二个 grid 上)
+      { name: 'MACD_hist', type: 'bar', data: macd.hist.map(v => v || 0), xAxisIndex: 1, yAxisIndex: 1, itemStyle:{color:'#ff3b30'} },
+      { name: 'DIF', type: 'line', data: macd.dif.map(v => v || 0), xAxisIndex: 1, yAxisIndex: 1, lineStyle:{color:'#1fb6ff'}, showSymbol:false },
+      { name: 'DEA', type: 'line', data: macd.dea.map(v => v || 0), xAxisIndex: 1, yAxisIndex: 1, lineStyle:{color:'#ffd166'}, showSymbol:false },
+      // RSI & KDJ 绘在第三个 grid（可视化上合并）
+      { name: 'RSI', type: 'line', data: rsi.map(v => v || null), xAxisIndex: 2, yAxisIndex: 2, lineStyle:{color:'#4cd964'}, showSymbol:false },
+      { name: 'K', type: 'line', data: kdj.K.map(v => v || null), xAxisIndex: 2, yAxisIndex: 2, lineStyle:{color:'#1fb6ff'}, showSymbol:false },
+      { name: 'D', type: 'line', data: kdj.D.map(v => v || null), xAxisIndex: 2, yAxisIndex: 2, lineStyle:{color:'#ffd166'}, showSymbol:false },
+      { name: 'J', type: 'line', data: kdj.J.map(v => v || null), xAxisIndex: 2, yAxisIndex: 2, lineStyle:{color:'#ff3b30'}, showSymbol:false }
+    ]
+  };
+
+  chart.setOption(option, true);
+}
+
+// 在窗口大小变化时调整图表
+window.addEventListener('resize', () => {
+  try { chart.resize(); } catch(e){}
+});
+
+/* ----------------- compute & render ----------------- */
+async function computeAndRender(){
+  if(kdata.length===0) return;
+  const closes = kdata.map(d=>d.close);
+  const highs = kdata.map(d=>d.high);
+  const lows = kdata.map(d=>d.low);
+
+  const rsi = calcRSI(closes,14);
+  const macd = calcMACD(closes,12,26,9);
+  const kdj = calcKDJ(closes,highs,lows,9,3,3);
+
+  const indicators = { rsi, macd, kdj };
+
+  // latest index
+  const idx = closes.length - 1;
+  const pred = makePrediction(idx, {closes, rsi, macd, kdj});
+  probEl.textContent = pred.prob + '%';
+  
+  // 更新当前价格显示
+  const currentPrice = kdata[kdata.length - 1].close;
+  currentPriceEl.textContent = currentPrice.toFixed(2);
+  currentPriceSmallEl.textContent = currentPrice.toFixed(2);
+  
+  // 更新价格范围
+  const prices = kdata.map(d => d.close);
+  priceRange.min = Math.min(...prices) * 0.995;
+  priceRange.max = Math.max(...prices) * 1.005;
+  
+  minPriceEl.textContent = priceRange.min.toFixed(2);
+  maxPriceEl.textContent = priceRange.max.toFixed(2);
+  
+  // 计算价格变化
+  if (kdata.length > 1) {
+    const prevPrice = kdata[kdata.length - 2].close;
+    const change = ((currentPrice - prevPrice) / prevPrice * 100).toFixed(2);
+    priceChangeEl.textContent = change + '%';
+    priceChangeEl.className = change >= 0 ? 'price-value price-up' : 'price-value price-down';
+  }
+  
+  // 更新预测方向
+  predictionDirectionEl.textContent = pred.dir;
+  predictionDirectionEl.className = 'price-value ' + (pred.dir === '上涨' ? 'price-up' : (pred.dir === '下跌' ? 'price-down' : ''));
+  
+  // 添加信号指示器
+  let signalClass = 'signal-neutral';
+  if (pred.dir === '上涨') signalClass = 'signal-up';
+  else if (pred.dir === '下跌') signalClass = 'signal-down';
+  
+  signalBox.textContent = pred.dir + ' (' + pred.prob + '%)';
+  signalBox.className = 'signal-value ' + signalClass;
+
+  // if above threshold, add markPoint & record
+  if(pred.prob >= thresh){
+    recordPrediction(kdata[idx].time, pred.dir, pred.prob, kdata[idx].close);
+  }
+
+  updateSliderValues();
+  lastUpdateEl.textContent = '最后更新: ' + new Date().toLocaleTimeString();
+  updateRecordsUI();
+  renderChart();
+}
+
+/* ----------------- 导出 CSV ----------------- */
+exportBtn.addEventListener('click', () => {
+  if (predictions.length === 0) {
+    alert('暂无预测数据可导出');
+    return;
+  }
+
+  // 表头
+  let csv = "时间,方向,概率,预测价格,实际价格,结果\n";
+
+  // 数据行
+  predictions.forEach(p => {
+    csv += [
+      new Date(p.time).toLocaleString(),
+      p.predDir,
+      p.prob + '%',
+      p.predPrice ? p.predPrice.toFixed(2) : '--',
+      p.actualPrice ? p.actualPrice.toFixed(2) : '--',
+      p.ok === null ? '等待' : (p.ok ? '正确' : '错误')
+    ].join(",") + "\n";
+  });
+
+  // 创建下载链接
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `预测记录_${symbol}_${interval}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ----------------- 启动 ----------------- */
+loadInitial();
+setInterval(()=>{ evaluatePredictions(); updateRecordsUI(); }, 30*1000);
+
+</script>
+</body>
+</html>
